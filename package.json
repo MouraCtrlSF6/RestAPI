@@ -1,0 +1,36 @@
+{
+  "name": "restapi",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "pg": "^8.12.0",
+    "typeorm": "0.3.7"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.0.0",
+    "@types/pg": "^8.11.6",
+    "nodemon": "^3.1.4",
+    "ts-node": "^10.9.2",
+    "tsc": "^2.0.4",
+    "typescript": "^5.5.4"
+  },
+  "scripts": {
+    "dev": "nodemon watch \"src/\" --exec \"ts-node src/index.ts\" -e ts",
+    "migration:generate": "typeorm-ts-node-commonjs -d ./src/database/postgres/connection.ts migration:generate ./src/database/postgres/migrations/default",
+    "migration:run": "typeorm-ts-node-commonjs -d ./src/database/postgres/connection.ts migration:run"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MouraCtrlSF6/RestAPI.git"
+  },
+  "author": "Lucas Moura da Silva",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/MouraCtrlSF6/RestAPI/issues"
+  },
+  "homepage": "https://github.com/MouraCtrlSF6/RestAPI#readme"
+}
