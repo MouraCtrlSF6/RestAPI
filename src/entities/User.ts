@@ -1,4 +1,5 @@
-import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Playlist } from "./playlist";
 
 @Entity("users")
 export class User {
@@ -6,10 +7,16 @@ export class User {
   id: number | undefined;
 
   @Column({ type: "text", nullable: false })
-  name: string | undefined;
+  name!: string;
+
+  @Column({ type: "text", nullable: false, unique: true })
+  email!: string;
 
   @Column({ type: "text", nullable: false })
-  email: string | undefined;
+  password!: string;
+
+  @OneToMany(() => Playlist, playlist => playlist.user, { onDelete: "CASCADE", eager: true })
+  playlists: Playlist[] | undefined
 
   @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP", update: false })
   created_at: Date | undefined;

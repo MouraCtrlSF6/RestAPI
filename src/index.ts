@@ -1,6 +1,6 @@
 import { config } from "dotenv";
-import app from "./config/systemConfiguration";
-import dataSource from "./database/postgres/connection";
+import app from "./config/system-configuration";
+import dataSource from "./database/postgres/datasource";
 
 config();
 

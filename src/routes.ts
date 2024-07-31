@@ -1,24 +1,16 @@
-import { Request, Response, Router } from "express";
-import { UserController } from "./controllers/users/UserController";
-
-const userController: UserController = UserController.getInstance();
+import { Router } from "express";
+import authMiddleware from "./middlewares/auth-middleware";
+import authRoutes from "./routes/auth-routes";
+import playlistRoutes from "./routes/playlist-routes";
+import songRoutes from "./routes/song-routes";
+import userRoutes from "./routes/user-routes";
 
 const routes = Router();
 
-routes.get("/users", async (request: Request, response: Response) => {
-  return await userController.list(request, response);
-});
-routes.get("/users/:id", async (request: Request, response: Response) => {
-  return await userController.read(request, response);
-});
-routes.post("/users", async (request: Request, response: Response) => {
-  return await userController.create(request, response);
-});
-routes.put("/users/:id", async (request: Request, response: Response) => {
-  return await userController.update(request, response);
-});
-routes.delete("/users/:id", async (request: Request, response: Response) => {
-  return await userController.delete(request, response);
-});
+routes.use(authRoutes)
+routes.use(userRoutes);
+routes.use(authMiddleware, playlistRoutes);
+routes.use(authMiddleware, songRoutes);
+
 
 export default routes;

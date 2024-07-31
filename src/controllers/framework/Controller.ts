@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
-import { FindOptionsWhereProperty, ObjectLiteral, Repository } from "typeorm";
-import { IController } from "./IController";
+import { FindOptionsOrder, FindOptionsWhere, FindOptionsWhereProperty, ObjectLiteral, Repository } from "typeorm";
+import { ColumnMetadata } from "typeorm/metadata/ColumnMetadata";
+import { IController } from "./icontroller";
 
 export class Controller<Entity extends ObjectLiteral> implements IController {
 
@@ -10,9 +11,8 @@ export class Controller<Entity extends ObjectLiteral> implements IController {
 
   public async create(request: Request, response: Response) {
     try {
-      const bodyData: Entity = request.body;
 
-      const entity: Entity = this.repository.create(bodyData);
+      const entity: Entity = this.repository.create(request.body as Entity);
 
       const data = await this.repository.save(entity);
 
@@ -28,12 +28,14 @@ export class Controller<Entity extends ObjectLiteral> implements IController {
 
   public async read(request: Request, response: Response) {
     try {
-      const { id: dataId } = request.params;
+      const idColumn: ColumnMetadata = this.getIdColumn();
+
+      const { [idColumn.propertyName]: dataId } = request.params;
 
       const data: Entity | null = await this.repository
-        .findOneBy(
-          { id: dataId as FindOptionsWhereProperty<NonNullable<Entity[string]>> }
-        );
+        .findOneBy({
+          [idColumn.propertyName]: dataId
+        } as FindOptionsWhere<Entity>);
 
       if(!data) {
         return response
@@ -52,38 +54,35 @@ export class Controller<Entity extends ObjectLiteral> implements IController {
 
   public async update(request: Request, response: Response) {
     try {
+      const idColumn: ColumnMetadata = this.getIdColumn();
 
-      const { id: dataId } = request.params;
+      const { [idColumn.propertyName]: dataId } = request.params;
 
       const register: Entity | null = await this.repository
-        .findOneBy(
-          { id: dataId as FindOptionsWhereProperty<NonNullable<Entity[string]>> }
-        );
+        .findOne({
+          loadEagerRelations: false,
+          where: { [idColumn.propertyName]: dataId } as FindOptionsWhere<Entity>
+        });
 
       if(!register) {
         return response
           .sendStatus(404);
       }
 
-      const updatedData: Entity = request.body;
+      const payload: Entity = this.repository
+        .create(request.body as Entity);
 
-      const entityFields = Object.keys(register);
-
-      const updatedFields = Object.keys(updatedData)
-
-      for (let updatedField of updatedFields) {
-        if(!entityFields.includes(updatedField)) {
-          throw `Invalid field ${updatedField}`;
-        }
+      // Assure that id is not included on payload so that
+      // no undesired new registers are created
+      if(Object.keys(payload).includes(idColumn.propertyName)) {
+        delete payload[idColumn.propertyName];
       }
 
-      if(updatedFields.includes("id")) {
-        delete updatedData["id"];
-      }
+      const updated: Entity = this.repository
+        .merge(register, payload);
 
-      Object.assign(register, updatedData);
-
-      const result = await this.repository.save(register)
+      const result = await this.repository
+        .save(updated)
 
       return response
         .status(200)
@@ -124,7 +123,15 @@ export class Controller<Entity extends ObjectLiteral> implements IController {
 
   public async list(request: Request, response: Response) {
     try {
-      const data: Entity[] = await this.repository.find();
+      const data: Entity[] = await this.repository.find({
+        loadEagerRelations: false,
+        where: {
+          ...request.query as Entity
+        } as FindOptionsWhere<Entity>,
+        order: {
+          [this.getIdColumn().propertyName]: "ASC"
+        } as FindOptionsOrder<Entity>
+      });
 
       if(!data || data.length == 0) {
         return response
@@ -139,5 +146,14 @@ export class Controller<Entity extends ObjectLiteral> implements IController {
         .status(400)
         .json("Error while listing: " + e);
     }
+  }
+
+  private getIdColumn(): ColumnMetadata {
+    const { primaryColumns } = this.repository.metadata;
+
+    const idColumn: ColumnMetadata = primaryColumns
+      .find((value: ColumnMetadata) => value.isObjectId) || primaryColumns[0];
+
+    return idColumn;
   }
 }
